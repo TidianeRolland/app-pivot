@@ -38,7 +38,8 @@
         [showSourceFilter]="false" (onTargetReorder)="onColumnChanged($event)"
         (onTargetSelect)="onColumnChanged($event)" (onMoveToTarget)="onColumnChanged($event)" [source]="allDBColumns"
         [target]="selectedCols" [responsive]="true" sourceHeader="All Tables" targetHeader="Selected Tables"
-        [dragdrop]="true" optionLabel="name" dataKey="key">
+        [dragdrop]="true" optionLabel="name" dataKey="key" (onMoveToSource)="onColumnChanged($event)" 
+        (onMoveAllToTarget)="onColumnChanged($event)" (onMoveAllToSource)="onColumnChanged($event)">
 
         <ng-template let-coll pTemplate="item">
           <div>

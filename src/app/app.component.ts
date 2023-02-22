@@ -5,6 +5,8 @@ import { Sale_Table } from 'src/interface/sale.interface';
 import { Seller_Table } from 'src/interface/seller.interface';
 import { mergeAllTables } from './utils/table.functions';
 
+const allTables: DBTable<any>[] = [Product_Table, Seller_Table, Sale_Table];
+
 const dbTables: DBTable<any>[] = [Product_Table, Seller_Table];
 const pivotTable = Sale_Table;
 
@@ -21,24 +23,52 @@ export class AppComponent implements OnInit {
 
   allDBColumns: DBColumn[] = [];
 
-  cols: any[] = [];
-
   items: any[] = [];
 
   dataTable: DBTable<any> | null = null;
 
   ngOnInit() {
     this.dataTable = mergeAllTables(pivotTable, dbTables);
-    console.log(this.dataTable);
     this.allDBColumns =
       this.dataTable?.columns.filter((col) => col.visible) || [];
-    // this.cols = this.dataTable?.columns.map(col => ({ field: col.key, header: col.name })) || [];
-    this.cols = this.selectedCols;
     this.onColumnChanged(null);
   }
 
+  getTableFromSelectedColumns(): any[] {
+    if (this.selectedCols.length === 0) return [];
+    const table_names = this.selectedCols.map((c) => c.table_name);
+    // create unique table names using a set
+    const unique_table_names = [...new Set(table_names)];
+    if (unique_table_names.length > 1) {
+      return this.dataTable?.data as any[];
+    } else {
+      // find in dbTables the table with the name
+      const table = allTables.find(
+        (t) => t.table_name === unique_table_names[0]
+      );
+      return table?.data as any[];
+    }
+  }
+
   onColumnChanged(event: any) {
-    console.log(this.selectedCols);
+    const table = this.getTableFromSelectedColumns();
+    // console.log('table', table);
+
+    // filter items to show only unique items regarding the selected columns
+    const filteredItems = table.filter((item, index, self) => {
+      return (
+        index ===
+        self.findIndex((t) => {
+          return this.selectedCols.every((col) => {
+            return t[col.key] === item[col.key];
+          });
+        })
+      );
+    });
+
+    // console.log('filteredItems', filteredItems);
+
+    // create array of sorted functions
     this.sortColsFunctions = this.selectedCols.map((col) => {
       return (a: any, b: any): number => {
         if (col.type === 'number') {
@@ -53,16 +83,17 @@ export class AppComponent implements OnInit {
       };
     });
 
+    // sort items
     let sortedItems = [];
     if (this.sortColsFunctions.length > 0) {
       for (let i = 0; i < this.sortColsFunctions.length; i++) {
         const sortFn = this.sortColsFunctions[i] as (a: any, b: any) => number;
-        sortedItems = this.dataTable?.data.sort(sortFn) || [];
+        sortedItems = filteredItems.sort(sortFn) || [];
       }
     }
 
-    this.items = sortedItems;
+    // console.log('sortedItems', sortedItems);
 
-    console.log(this.items);
+    this.items = sortedItems;
   }
 }
